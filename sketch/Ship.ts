@@ -1,13 +1,9 @@
-class Ship extends AEntity {
-	width: number;
-	height: number;
-	img: p5.Image;
+class Ship extends ARecEntity {
+	private img: p5.Image;
 
 	constructor() {
-		super(windowWidth / 2, windowHeight - 100 - 20, 5, 0, 0);
+		super(windowWidth / 2, windowHeight - 100 - 20, 5, 0, 0, 80, 100);
 		this.img = loadImage('../res/ship.png');
-		this.width = 80;
-		this.height = 100;
 	}
 
 	show() {

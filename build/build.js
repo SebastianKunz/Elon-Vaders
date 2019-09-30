@@ -2,6 +2,8 @@ var AEntity = (function () {
     function AEntity(x, y, speed, xdir, ydir) {
         var _this = this;
         this.isDead = function () { return _this.dead; };
+        this.getX = function () { return _this.x; };
+        this.getY = function () { return _this.y; };
         this.x = x;
         this.y = y;
         this.speed = speed;
@@ -24,6 +26,9 @@ var AEntity = (function () {
     AEntity.prototype.setSpeed = function (speed) {
         this.speed = speed;
     };
+    AEntity.prototype.modSpeed = function (amount) {
+        this.speed += amount;
+    };
     AEntity.prototype.Dead = function () {
         this.dead = true;
     };
@@ -42,12 +47,34 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var ARecEntity = (function (_super) {
+    __extends(ARecEntity, _super);
+    function ARecEntity(x, y, speed, xdir, ydir, width, height) {
+        var _this = _super.call(this, x, y, speed, xdir, ydir) || this;
+        _this.getWidth = function () { return _this.width; };
+        _this.getHeight = function () { return _this.height; };
+        _this.width = width;
+        _this.height = height;
+        return _this;
+    }
+    ARecEntity.prototype.hits = function (x, y, width, height, dir) {
+        if (dir > 0)
+            return this.y <= y + height && this.y >= y - height && this.x >= x && this.x <= x + width;
+        else
+            return this.y >= y && this.y <= y + height && this.x >= x && this.x <= x + width;
+    };
+    ARecEntity.prototype.move = function () {
+        this.x += this.speed * this.xdir;
+        this.y -= this.speed * this.ydir;
+        if (!isInBounds(this.x, this.y))
+            this.dead = true;
+    };
+    return ARecEntity;
+}(AEntity));
 var Bullet = (function (_super) {
     __extends(Bullet, _super);
     function Bullet(x, y, color, dir) {
-        var _this = _super.call(this, x, y, 5, 0, dir) || this;
-        _this.width = 5;
-        _this.height = 20;
+        var _this = _super.call(this, x, y, 5, 0, dir, 5, 20) || this;
         _this.color = color;
         return _this;
     }
@@ -56,21 +83,13 @@ var Bullet = (function (_super) {
         noStroke();
         rect(this.x, this.y, this.width, this.height);
     };
-    Bullet.prototype.hits = function (x, y, width, height, dir) {
-        if (dir > 0)
-            return this.y <= y + height && this.y >= y - height && this.x >= x && this.x <= x + width;
-        else
-            return this.y >= y && this.y <= y + height && this.x >= x && this.x <= x + width;
-    };
     return Bullet;
-}(AEntity));
+}(ARecEntity));
 var Enemy = (function (_super) {
     __extends(Enemy, _super);
     function Enemy(x, y, type) {
-        var _this = _super.call(this, x, y, 5, 1, 0) || this;
+        var _this = _super.call(this, x, y, 5, 1, 0, 50, 50) || this;
         _this.img = loadImage('../res/alien' + type + '.png');
-        _this.width = 50;
-        _this.height = 50;
         return _this;
     }
     Enemy.prototype.shiftDown = function () {
@@ -81,24 +100,48 @@ var Enemy = (function (_super) {
         image(this.img, this.x, this.y, this.width, this.height);
     };
     return Enemy;
-}(AEntity));
+}(ARecEntity));
+var shouldDisplay = true;
 var Game = (function () {
     function Game() {
         var _this = this;
         this.score = 0;
-        this.maxBullets = 5;
-        this.lives = 3;
         this.level = 1;
         this.gameOver = false;
         this.totalEnemiesAlive = 0;
+        this.timeoutId = -1;
+        this.powerUpId = -1;
         this.DEBUG = false;
         this.getScore = function () { return _this.score; };
         this.getLevel = function () { return _this.level; };
+        this.getLives = function () { return _this.player.getLives(); };
         this.increaseLevel = function () { return _this.level++; };
         this.getTotalEnemiesAlive = function () { return _this.totalEnemiesAlive; };
         this.isGameOver = function () { return _this.gameOver; };
         this.gameIsOver = function () { _this.gameOver = true; };
+        this.setPlayerXDir = function (dir) { return _this.player.setXDir(dir); };
+        this.setPlayerYDir = function (dir) { return _this.player.setYDir(dir); };
+        this.playerFire = function () {
+            if (_this.bullets.length < _this.player.getMaxBullets()) {
+                _this.bullets.push(_this.player.createBullet());
+            }
+        };
+        this.restartSpawnPowerUp = function (ms) {
+            if (_this.powerUpId === -1) {
+                _this.powerUpId = setInterval(function () {
+                    var x = random(SCREEN_OFFSET, windowWidth - SCREEN_OFFSET);
+                    var y = random(0, 300);
+                    _this.powerUps.push(_this.powerUpFactory.createRandomPowerUp(x, y));
+                }, ms);
+            }
+            else {
+                clearInterval(_this.powerUpId);
+                _this.powerUpId = -1;
+                _this.restartSpawnPowerUp(ms);
+            }
+        };
         this.spawnNextWave = function () {
+            _this.resetDisplay();
             var maxEnemiesInRow = Math.floor((windowWidth - SCREEN_OFFSET * 2) / 50);
             var rows = _this.level > 8 ? 8 : _this.level;
             _this.enemies = new Array();
@@ -114,8 +157,8 @@ var Game = (function () {
         this.movePowerUps = function () {
             _this.powerUps.forEach(function (powerUp) {
                 powerUp.show();
-                if (powerUp.hits(game.ship.x, game.ship.y, game.ship.width, game.ship.height)) {
-                    powerUp.addEffect(game.ship);
+                if (powerUp.hits(_this.player.getX(), _this.player.getY(), _this.player.getWidth(), _this.player.getHeight(), -1)) {
+                    powerUp.addEffect(_this.player);
                     powerUp.Dead();
                 }
                 powerUp.move();
@@ -128,9 +171,9 @@ var Game = (function () {
                 star.move();
             });
         };
-        this.moveShip = function () {
-            _this.ship.show();
-            _this.ship.move();
+        this.movePlayer = function () {
+            _this.player.show();
+            _this.player.move();
         };
         this.moveEnemies = function () {
             var hitEdge = false;
@@ -138,13 +181,13 @@ var Game = (function () {
                 enemyArr.forEach(function (enemy) {
                     enemy.show();
                     if (random(0, 1000) <= 1) {
-                        game.enemyBullets.push(new Bullet(enemy.x, enemy.y, color(255, 0, 0, 255), -1));
+                        game.enemyBullets.push(new Bullet(enemy.getX(), enemy.getY(), color(255, 0, 0, 255), -1));
                     }
                     enemy.move();
-                    if (enemy.x > windowWidth - enemy.width - SCREEN_OFFSET || enemy.x < SCREEN_OFFSET) {
+                    if (enemy.getX() > windowWidth - enemy.getWidth() - SCREEN_OFFSET || enemy.getX() < SCREEN_OFFSET) {
                         hitEdge = true;
                     }
-                    if (enemy.y + enemy.height >= windowHeight - PLAYER_SPACE_HEIGHT)
+                    if (enemy.getY() + enemy.getHeight() >= windowHeight - PLAYER_SPACE_HEIGHT)
                         game.gameOver = true;
                 });
             });
@@ -156,42 +199,44 @@ var Game = (function () {
             });
         };
         this.moveEnemyBullets = function () {
-            for (var i = 0; i < game.enemyBullets.length; i++) {
-                var bullet = game.enemyBullets[i];
+            for (var i = 0; i < _this.enemyBullets.length; i++) {
+                var bullet = _this.enemyBullets[i];
                 bullet.show();
                 bullet.move();
-                if (bullet.hits(game.ship.x, game.ship.y, game.ship.width, game.ship.height, -1)) {
-                    bullet.dead = true;
-                    if (!game.gameOver)
-                        game.lives--;
-                    if (game.lives <= 0)
-                        game.gameOver = true;
+                if (bullet.hits(_this.player.getX(), _this.player.getY(), _this.player.getWidth(), _this.player.getHeight(), -1)) {
+                    bullet.Dead();
+                    if (!_this.gameOver)
+                        _this.player.decreaseLives();
+                    if (_this.player.getLives() <= 0)
+                        _this.gameOver = true;
                 }
             }
-            game.enemyBullets = game.enemyBullets.filter(function (bullet) { return !bullet.dead; });
+            game.enemyBullets = game.enemyBullets.filter(function (bullet) { return !bullet.isDead(); });
         };
         this.movePlayerBullets = function () {
             for (var k = 0; k < game.bullets.length; k++) {
                 var bullet = game.bullets[k];
                 bullet.show();
                 bullet.move();
-                for (var i = 0; i < game.enemies.length; i++) {
-                    for (var j = 0; j < game.enemies[i].length; j++) {
-                        var enemy = game.enemies[i][j];
-                        if (bullet.hits(enemy.x, enemy.y, enemy.width, enemy.height, 1)) {
-                            ellipse(bullet.x, bullet.y, 6, 6);
-                            game.enemies[i].splice(j, 1);
-                            game.totalEnemiesAlive--;
-                            game.bullets.splice(k, 1);
+                for (var i = 0; i < _this.enemies.length; i++) {
+                    for (var j = 0; j < _this.enemies[i].length; j++) {
+                        var enemy = _this.enemies[i][j];
+                        if (bullet.hits(enemy.getX(), enemy.getY(), enemy.getWidth(), enemy.getHeight(), 1)) {
+                            if (!_this.gameOver)
+                                _this.score += 10;
+                            ellipse(bullet.getX(), bullet.getY(), 6, 6);
+                            _this.enemies[i].splice(j, 1);
+                            _this.totalEnemiesAlive--;
+                            _this.bullets.splice(k, 1);
                             break;
                         }
                     }
                 }
-                if (!isInBounds(bullet.x, bullet.y))
-                    game.bullets.splice(k, 1);
+                if (!isInBounds(bullet.getX(), bullet.getY()))
+                    _this.bullets.splice(k, 1);
             }
         };
-        this.ship = new Ship();
+        this.player = new Player();
         this.bullets = new Array();
         this.enemyBullets = new Array();
         this.stars = new Array();
@@ -203,37 +248,68 @@ var Game = (function () {
         this.powerUpFactory = new PowerUpFactory();
         this.powerUps = new Array();
         this.heartImg = loadImage('../res/heart.png');
-        this.powerUps[0] = this.powerUpFactory.createRandomPowerUp(300, 500);
+        this.timeoutId = -1;
+        this.restartSpawnPowerUp(10000);
     }
+    Game.prototype.getDisplayLevelDesc = function () {
+        return this.shouldDisplayLevelDesc;
+    };
+    Game.prototype.resetDisplay = function () {
+        shouldDisplay = true;
+        if (this.timeoutId === -1) {
+            this.timeoutId = setTimeout(function () {
+                shouldDisplay = false;
+            }, 3000);
+        }
+        else {
+            clearTimeout(this.timeoutId);
+            this.timeoutId = -1;
+        }
+    };
     return Game;
 }());
 var Player = (function () {
     function Player() {
+        var _this = this;
+        this.getLives = function () { return _this.lives; };
+        this.increaseLives = function () { _this.lives++; };
+        this.decreaseLives = function () { _this.lives--; };
+        this.getMaxBullets = function () { return _this.maxBullets; };
+        this.increaseMaxBullets = function () { _this.maxBullets++; };
+        this.setXDir = function (dir) { return _this.ship.setXDir(dir); };
+        this.setYDir = function (dir) { return _this.ship.setYDir(dir); };
+        this.setSpeed = function (speed) { return _this.ship.setSpeed(speed); };
+        this.modSpeed = function (amount) { return _this.ship.modSpeed(amount); };
+        this.getX = function () { return _this.ship.getX(); };
+        this.getY = function () { return _this.ship.getY(); };
+        this.getWidth = function () { return _this.ship.getWidth(); };
+        this.getHeight = function () { return _this.ship.getHeight(); };
+        this.move = function () { return _this.ship.move(); };
+        this.show = function () { return _this.ship.show(); };
+        this.createBullet = function () {
+            return new Bullet(_this.getX(), _this.getY(), color(255), 1);
+        };
+        this.ship = new Ship();
+        this.maxBullets = 5;
+        this.lives = 3;
     }
     return Player;
 }());
 var APowerUp = (function (_super) {
     __extends(APowerUp, _super);
     function APowerUp(x, y, speed, image) {
-        var _this = _super.call(this, x, y, speed, 0, -1) || this;
-        _this.width = 25;
-        _this.height = 25;
+        var _this = _super.call(this, x, y, speed, 0, -1, 25, 25) || this;
         _this.image = image;
         return _this;
     }
     APowerUp.prototype.show = function () {
         image(this.image, this.x, this.y, this.width, this.height);
     };
-    APowerUp.prototype.hits = function (x, y, width, height) {
-        return this.y >= y && this.y <= y + height && this.x >= x && this.x <= x + width;
-    };
     return APowerUp;
-}(AEntity));
+}(ARecEntity));
 var PowerUpFactory = (function () {
     function PowerUpFactory() {
     }
-    PowerUpFactory.prototype.createPowerUp = function (id) {
-    };
     PowerUpFactory.prototype.createRandomPowerUp = function (x, y) {
         var rand = Math.floor(random(0, 3));
         switch (rand) {
@@ -253,13 +329,12 @@ var PowerUpFactory = (function () {
 var SpeedPowerUp = (function (_super) {
     __extends(SpeedPowerUp, _super);
     function SpeedPowerUp(x, y, speed) {
-        return _super.call(this, x, y, 1, loadImage('../res/PowerUps/speed.png')) || this;
+        var _this = _super.call(this, x, y, speed, loadImage('../res/PowerUps/speed.png')) || this;
+        _this.amount = 1;
+        return _this;
     }
-    SpeedPowerUp.prototype.addEffect = function (obj) {
-        if (obj.speed)
-            obj.speed += 1;
-        else
-            console.warn("obj does not have 'lives' attribute");
+    SpeedPowerUp.prototype.addEffect = function (player) {
+        player.modSpeed(this.amount);
     };
     return SpeedPowerUp;
 }(APowerUp));
@@ -268,11 +343,8 @@ var LifeUp = (function (_super) {
     function LifeUp(x, y, speed) {
         return _super.call(this, x, y, speed, loadImage('../res/PowerUps/life.png')) || this;
     }
-    LifeUp.prototype.addEffect = function (obj) {
-        if (obj.lives)
-            obj.lives += 1;
-        else
-            console.warn("obj does not have 'lives' attribute");
+    LifeUp.prototype.addEffect = function (player) {
+        player.increaseLives();
     };
     return LifeUp;
 }(APowerUp));
@@ -281,28 +353,23 @@ var MoreAmmo = (function (_super) {
     function MoreAmmo(x, y, speed) {
         return _super.call(this, x, y, speed, loadImage('../res/PowerUps/ammo.png')) || this;
     }
-    MoreAmmo.prototype.addEffect = function (obj) {
-        if (obj.maxBullets)
-            obj.maxBullets += 1;
-        else
-            console.warn("obj does not have 'maxBullets' attribute");
+    MoreAmmo.prototype.addEffect = function (player) {
+        player.increaseMaxBullets();
     };
     return MoreAmmo;
 }(APowerUp));
 var Ship = (function (_super) {
     __extends(Ship, _super);
     function Ship() {
-        var _this = _super.call(this, windowWidth / 2, windowHeight - 100 - 20, 5, 0, 0) || this;
+        var _this = _super.call(this, windowWidth / 2, windowHeight - 100 - 20, 5, 0, 0, 80, 100) || this;
         _this.img = loadImage('../res/ship.png');
-        _this.width = 80;
-        _this.height = 100;
         return _this;
     }
     Ship.prototype.show = function () {
         image(this.img, this.x, this.y, this.width, this.height);
     };
     return Ship;
-}(AEntity));
+}(ARecEntity));
 var Star = (function (_super) {
     __extends(Star, _super);
     function Star(x, y, radius1, radius2, npoints) {
@@ -353,8 +420,9 @@ var setCookie = function (cname, cvalue, exdays) {
 var drawGameOverScreen = function () {
     var temp = parseInt(getCookieByName('highscore'));
     var highscore = isNaN(temp) ? 0 : temp;
-    if (game.getScore() > highscore)
-        setCookie('highscore', game.score, 1000);
+    var score = game.getScore();
+    if (score > highscore)
+        setCookie('highscore', score, 1000);
     noStroke();
     textSize(64);
     fill(255, 0, 0, 255);
@@ -374,9 +442,18 @@ var drawUi = function () {
     text('Level: ' + game.getLevel(), windowWidth - 100, windowHeight - 20);
     textAlign(CENTER, CENTER);
     text(game.getScore(), windowWidth / 2, 20);
-    for (var i = 0; i < game.lives; i++) {
+    for (var i = 0; i < game.getLives(); i++) {
         image(game.heartImg, 50 * i, windowHeight - 50, 50, 50);
     }
+};
+var displayLevelAndDesc = function () {
+    var level = game.getLevel();
+    if (!shouldDisplay)
+        return;
+    textAlign(CENTER, CENTER);
+    textSize(64);
+    fill(255);
+    text('LEVEL ' + level, windowWidth / 2, windowHeight / 2);
 };
 var isInBounds = function (x, y) {
     return x >= 0 && x <= windowWidth && y >= 0 && y <= windowHeight;
@@ -392,23 +469,26 @@ function windowResized() {
 }
 function draw() {
     drawUi();
+    game.moveStars();
     game.movePowerUps();
-    game.moveShip();
+    game.movePlayer();
     game.moveEnemies();
     game.moveEnemyBullets();
     game.movePlayerBullets();
-    if (game.totalEnemiesAlive === 0) {
+    if (game.getTotalEnemiesAlive() === 0) {
         game.increaseLevel();
         game.spawnNextWave();
     }
     if (game.isGameOver()) {
-        game.ship.setXDir(0);
+        game.setPlayerXDir(0);
         drawGameOverScreen();
     }
+    else
+        displayLevelAndDesc();
 }
 function keyReleased() {
     if (keyCode !== SPACE_BAR)
-        game.ship.setXDir(0);
+        game.setPlayerXDir(0);
 }
 function keyPressed() {
     if (game.isGameOver()) {
@@ -417,14 +497,13 @@ function keyPressed() {
         return;
     }
     if (keyCode === RIGHT_ARROW) {
-        game.ship.setXDir(1);
+        game.setPlayerXDir(1);
     }
-    else if (keyCode === LEFT_ARROW) {
-        game.ship.setXDir(-1);
+    if (keyCode === LEFT_ARROW) {
+        game.setPlayerXDir(-1);
     }
     if (keyCode === SPACE_BAR) {
-        if (game.bullets.length < game.maxBullets)
-            game.bullets.push(new Bullet(game.ship.x + game.ship.width / 2, game.ship.y, color(255), 1));
+        game.playerFire();
     }
 }
 //# sourceMappingURL=build.js.map

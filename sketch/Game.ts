@@ -1,29 +1,29 @@
 /*
 	All Global variables that are needed by the game
 */
+let shouldDisplay = true;
 class Game {
-	ship: Ship;
-	player: Player;
+	private player: Player;
 	private powerUpFactory: PowerUpFactory;
 	private powerUps: Array<APowerUp>;
-	enemies: Array<Array<Enemy>>;
-	bullets: Array<Bullet>;
-	enemyBullets: Array<Bullet>;
+	private enemies: Array<Array<Enemy>>;
+	private bullets: Array<Bullet>;
+	private enemyBullets: Array<Bullet>;
 	private stars: Array<Star>;
 	private score = 0;
-	maxBullets = 5;
-	lives = 3;
 	private level = 1;
 	private gameOver = false;
-	totalEnemiesAlive = 0;
+	private totalEnemiesAlive = 0;
 
+	private timeoutId = -1;
+	private powerUpId = -1;
 
 	heartImg: p5.Image;
 
 	DEBUG = false;
 
 	constructor() {
-		this.ship = new Ship();
+		this.player = new Player();
 		this.bullets = new Array<Bullet>();
 		this.enemyBullets = new Array<Bullet>();
 
@@ -37,18 +37,68 @@ class Game {
 		this.powerUpFactory = new PowerUpFactory();
 		this.powerUps = new Array<APowerUp>();
 		this.heartImg = loadImage('../res/heart.png');
-		this.powerUps[0] = this.powerUpFactory.createRandomPowerUp(300, 500);
+
+		this.timeoutId = -1;
+		this.restartSpawnPowerUp(10000);
 	}
 
 	getScore = () => this.score;
 	getLevel = () => this.level;
+	getLives = () => this.player.getLives();
 	increaseLevel = () => this.level++;
 	getTotalEnemiesAlive = () => this.totalEnemiesAlive;
 	isGameOver = () => this.gameOver;
 	// finishes the game
 	gameIsOver = () => { this.gameOver = true; };
 
+	setPlayerXDir = (dir: number) => this.player.setXDir(dir);
+	setPlayerYDir = (dir: number) => this.player.setYDir(dir);
+	getDisplayLevelDesc () {
+		return this.shouldDisplayLevelDesc;
+	}
+
+	playerFire = () => {
+		if (this.bullets.length < this.player.getMaxBullets()) {
+			this.bullets.push(this.player.createBullet());
+		}
+	}
+
+	private resetDisplay() {
+		shouldDisplay = true;
+
+		if (this.timeoutId === -1)
+		{
+			this.timeoutId = setTimeout( function () {
+				shouldDisplay = false;
+			}, 3000);
+
+		}
+		else
+		{
+			clearTimeout(this.timeoutId);
+			this.timeoutId = -1;
+		}
+	}
+	// starts a loop to spawn powerUps every | ms |
+	private restartSpawnPowerUp = (ms: number) => {
+		if (this.powerUpId === -1)
+		{
+			this.powerUpId = setInterval(() => {
+				const x = random(SCREEN_OFFSET, windowWidth - SCREEN_OFFSET);
+				const y = random(0, 300);
+				this.powerUps.push(this.powerUpFactory.createRandomPowerUp(x, y));
+			}, ms);
+		}
+		else {
+			clearInterval(this.powerUpId);
+			this.powerUpId = -1;
+			this.restartSpawnPowerUp(ms);
+		}
+	}
+
+
 	spawnNextWave = () => {
+		this.resetDisplay();
 		const maxEnemiesInRow = Math.floor((windowWidth - SCREEN_OFFSET * 2) / 50);
 		const rows = this.level > 8 ? 8 : this.level;
 		this.enemies = new Array<Array<Enemy>>();
@@ -65,12 +115,11 @@ class Game {
 	movePowerUps = () => {
 		this.powerUps.forEach(powerUp => {
 			powerUp.show();
-			if (powerUp.hits(game.ship.x, game.ship.y, game.ship.width, game.ship.height))
+			if (powerUp.hits(this.player.getX(), this.player.getY(), this.player.getWidth(), this.player.getHeight(), -1))
 			{
-				powerUp.addEffect(game.ship);
+				powerUp.addEffect(this.player);
 				powerUp.Dead();
 			}
-
 			powerUp.move();
 		});
 
@@ -85,9 +134,9 @@ class Game {
 		);
 	}
 
-	moveShip = () => {
-		this.ship.show();
-		this.ship.move();
+	movePlayer = () => {
+		this.player.show();
+		this.player.move();
 	}
 
 	moveEnemies = () => {
@@ -98,15 +147,15 @@ class Game {
 
 				// let enemy shoot randomly
 				if (random(0, 1000) <= 1) {
-					game.enemyBullets.push(new Bullet(enemy.x, enemy.y, color(255, 0, 0, 255), -1));
+					game.enemyBullets.push(new Bullet(enemy.getX(), enemy.getY(), color(255, 0, 0, 255), -1));
 				}
 
 				enemy.move();
-				if (enemy.x > windowWidth - enemy.width - SCREEN_OFFSET || enemy.x < SCREEN_OFFSET) {
+				if (enemy.getX() > windowWidth - enemy.getWidth() - SCREEN_OFFSET || enemy.getX() < SCREEN_OFFSET) {
 					hitEdge = true;
 				}
 
-				if (enemy.y + enemy.height >= windowHeight - PLAYER_SPACE_HEIGHT)
+				if (enemy.getY() + enemy.getHeight() >= windowHeight - PLAYER_SPACE_HEIGHT)
 					game.gameOver = true;
 			})
 	});
@@ -120,24 +169,24 @@ class Game {
 	}
 
 	moveEnemyBullets = () => {
-		for (let i = 0; i < game.enemyBullets.length; i++) {
-			const bullet = game.enemyBullets[i];
+		for (let i = 0; i < this.enemyBullets.length; i++) {
+			const bullet = this.enemyBullets[i];
 
 			bullet.show();
 			bullet.move();
 
-			if (bullet.hits(game.ship.x, game.ship.y, game.ship.width, game.ship.height, -1))
+			if (bullet.hits(this.player.getX(), this.player.getY(), this.player.getWidth(), this.player.getHeight(), -1))
 			{
-				bullet.dead = true;
-				if (!game.gameOver)
-					game.lives--;
+				bullet.Dead();
+				if (!this.gameOver)
+					this.player.decreaseLives();
 
-				if (game.lives <= 0)
-					game.gameOver = true;
+				if (this.player.getLives() <= 0)
+					this.gameOver = true;
 			}
 		}
 
-		game.enemyBullets = game.enemyBullets.filter(bullet => !bullet.dead);
+		game.enemyBullets = game.enemyBullets.filter(bullet => !bullet.isDead());
 	}
 
 	movePlayerBullets = () => {
@@ -146,26 +195,26 @@ class Game {
 			bullet.show();
 			bullet.move();
 
-			for (let i = 0; i < game.enemies.length; i++) {
-				for (let j = 0; j < game.enemies[i].length; j++) {
-					const enemy = game.enemies[i][j];
-					if (bullet.hits(enemy.x, enemy.y, enemy.width, enemy.height, 1))
+			for (let i = 0; i < this.enemies.length; i++) {
+				for (let j = 0; j < this.enemies[i].length; j++) {
+					const enemy = this.enemies[i][j];
+					if (bullet.hits(enemy.getX(), enemy.getY(), enemy.getWidth(), enemy.getHeight(), 1))
 					{
 						// remove bullet and enemy from array
-						// if (!game.gameOver)
-						// 	game.score += 10;
-						ellipse(bullet.x, bullet.y, 6, 6);
-						game.enemies[i].splice(j, 1);
-						game.totalEnemiesAlive--;
-						game.bullets.splice(k, 1);
+						if (!this.gameOver)
+							this.score += 10;
+						ellipse(bullet.getX(), bullet.getY(), 6, 6);
+						this.enemies[i].splice(j, 1);
+						this.totalEnemiesAlive--;
+						this.bullets.splice(k, 1);
 
 						break ;
 					}
 				}
 			}
 
-			if (!isInBounds(bullet.x, bullet.y))
-				game.bullets.splice(k, 1);
+			if (!isInBounds(bullet.getX(), bullet.getY()))
+				this.bullets.splice(k, 1);
 		}
 	}
 }

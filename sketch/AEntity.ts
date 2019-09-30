@@ -1,6 +1,11 @@
+/*
+	Abstract class for entites.
+	An entity is a game object. Bullets, Enemies, Ships are all entities
+	and should inherite from this class.
+*/
 abstract class AEntity {
-	x: number;
-	y: number;
+	protected x: number;
+	protected y: number;
 	protected speed: number;
 	protected dead: boolean;
 	protected xdir: number;
@@ -35,12 +40,18 @@ abstract class AEntity {
 		this.speed = speed;
 	}
 
+	modSpeed(amount: number) {
+		this.speed += amount;
+	}
+
 	isDead = () => this.dead;
 
 	Dead() {
 		this.dead = true;
 	}
 
+	getX = () => this.x;
+	getY = () => this.y;
 
 	abstract show() : void;
 }

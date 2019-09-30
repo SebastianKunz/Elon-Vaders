@@ -2,8 +2,10 @@ const drawGameOverScreen = () => {
 	let temp = parseInt(getCookieByName('highscore'));
 	const highscore = isNaN(temp) ? 0 : temp;
 
-	if (game.getScore() > highscore)
-		setCookie('highscore', game.score, 1000);
+	const score = game.getScore();
+
+	if (score > highscore)
+		setCookie('highscore', score, 1000);
 
 	noStroke();
 	textSize(64);
@@ -25,7 +27,19 @@ const drawUi = () => {
 	text('Level: ' + game.getLevel(), windowWidth - 100, windowHeight - 20)
 	textAlign(CENTER, CENTER);
 	text(game.getScore(), windowWidth / 2, 20);
-	for(let i = 0; i < game.lives; i++) {
+	for(let i = 0; i < game.getLives(); i++) {
 		image(game.heartImg, 50 * i, windowHeight - 50, 50, 50)
 	}
+}
+
+const displayLevelAndDesc = () => {
+	const level = game.getLevel();
+
+	if (!shouldDisplay)
+		return;
+
+	textAlign(CENTER, CENTER);
+	textSize(64);
+	fill(255);
+	text('LEVEL ' + level, windowWidth / 2, windowHeight / 2);
 }

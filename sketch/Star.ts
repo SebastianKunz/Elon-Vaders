@@ -1,8 +1,8 @@
+// Star class doesn't have a hitbox, so it can directly inherite from AEntity
 class Star extends AEntity {
 	npoints: number;
 	radius1: number;
 	radius2: number;
-	speed: number;
 
 	constructor(x: number, y: number, radius1: number, radius2: number, npoints: number) {
 		super(x, y, random(1, 5), 0, -1);

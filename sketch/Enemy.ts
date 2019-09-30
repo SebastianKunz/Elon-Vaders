@@ -1,13 +1,9 @@
-class Enemy extends AEntity {
-	width: number;
-	height: number;
-	img: p5.Image;
+class Enemy extends ARecEntity {
+	private img: p5.Image;
 
 	constructor(x: number, y: number, type: number) {
-		super(x, y, 5, 1, 0);
+		super(x, y, 5, 1, 0, 50, 50);
 		this.img = loadImage('../res/alien' + type + '.png');
-		this.width = 50;
-		this.height = 50;
 	}
 
 	shiftDown() {

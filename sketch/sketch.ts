@@ -14,8 +14,9 @@ function windowResized() {
 function draw() {
 	drawUi();
 
+	game.moveStars();
 	game.movePowerUps();
-	game.moveShip();
+	game.movePlayer();
 
 	game.moveEnemies();
 
@@ -23,7 +24,7 @@ function draw() {
 
 	game.movePlayerBullets();
 
-	if (game.totalEnemiesAlive === 0)
+	if (game.getTotalEnemiesAlive() === 0)
 	{
 		game.increaseLevel();
 		game.spawnNextWave();
@@ -31,14 +32,16 @@ function draw() {
 
 	if (game.isGameOver())
 	{
-		game.ship.setXDir(0);
+		game.setPlayerXDir(0);
 		drawGameOverScreen();
 	}
+	else
+		displayLevelAndDesc();
 }
 
 function keyReleased() {
 	if (keyCode !== SPACE_BAR)
-		game.ship.setXDir(0)
+		game.setPlayerXDir(0)
 }
 
 function keyPressed() {
@@ -50,16 +53,15 @@ function keyPressed() {
 	}
 
 	if (keyCode === RIGHT_ARROW) {
-		game.ship.setXDir(1)
+		game.setPlayerXDir(1)
 	}
-	else if (keyCode === LEFT_ARROW)
+	if (keyCode === LEFT_ARROW)
 	{
-		game.ship.setXDir(-1)
+		game.setPlayerXDir(-1)
 	}
 
 	if (keyCode === SPACE_BAR)
 	{
-		if (game.bullets.length < game.maxBullets)
-			game.bullets.push(new Bullet(game.ship.x + game.ship.width / 2, game.ship.y, color(255), 1));
+		game.playerFire();
 	}
 }
