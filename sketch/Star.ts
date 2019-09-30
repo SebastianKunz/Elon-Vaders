@@ -1,18 +1,14 @@
-class Star {
-	x: number;
-	y: number;
+class Star extends AEntity {
 	npoints: number;
 	radius1: number;
 	radius2: number;
 	speed: number;
 
 	constructor(x: number, y: number, radius1: number, radius2: number, npoints: number) {
-		this.x = x;
-		this.y = y;
+		super(x, y, random(1, 5), 0, -1);
 		this.npoints = npoints;
 		this.radius1 = radius1;
 		this.radius2 = radius2;
-		this.speed = getRandomNumber(1, 5);
 	}
 
 	show() {
@@ -36,7 +32,7 @@ class Star {
 		this.y += this.speed;
 
 		if (this.y >= windowHeight) {
-			this.y = getRandomNumber(0, 100);
+			this.y = random(0, 100);
 		}
 	}
 }
