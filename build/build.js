@@ -118,7 +118,7 @@ var AEnemy = (function (_super) {
 var Boss = (function (_super) {
     __extends(Boss, _super);
     function Boss(x, y, type) {
-        return _super.call(this, x, y, 10, 1, 0, BOSS_SIZE, BOSS_SIZE, loadImage('../res/alien' + type + '.png'), 3, 100, 100) || this;
+        return _super.call(this, x, y, 10, 1, 0, BOSS_SIZE, BOSS_SIZE, loadImage('../res/a' + type + '.png'), 3, 100, 100) || this;
     }
     return Boss;
 }(AEnemy));
@@ -141,7 +141,7 @@ var Bullet = (function (_super) {
 var Enemy = (function (_super) {
     __extends(Enemy, _super);
     function Enemy(x, y, type) {
-        return _super.call(this, x, y, 5, 1, 0, ENEMY_SIZE, ENEMY_SIZE, loadImage('../res/alien' + type + '.png'), 1, 1, 10) || this;
+        return _super.call(this, x, y, 5, 1, 0, ENEMY_SIZE, ENEMY_SIZE, loadImage('../res/a' + type + '.png'), 1, 1, 10) || this;
     }
     return Enemy;
 }(AEnemy));
@@ -426,7 +426,7 @@ var PowerUpFactory = (function () {
 var Ship = (function (_super) {
     __extends(Ship, _super);
     function Ship() {
-        return _super.call(this, windowWidth / 2, windowHeight - 100 - 20, 5, 0, 0, 80, 100, loadImage('../res/ship.png')) || this;
+        return _super.call(this, windowWidth / 2, windowHeight - 100 - 20, 5, 0, 0, 80, 100, loadImage('../res/musk.png')) || this;
     }
     return Ship;
 }(AImgEntity));
