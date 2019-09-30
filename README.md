@@ -2,8 +2,9 @@
 A submission for the `IT-Talents` code competition.
 Written in TypeScript with `P5.JS` library.
 
+## Can you Save the world?
 Help Elon Musk defend our planet from the aggressive AI's!
-Fight `AlphaGo` `OpenAI` and `AlphaZero`. Collect PowerUps to make strengthen your defense.
+Fight `AlphaGo` `OpenAI` and `AlphaZero`. Collect PowerUps, like the `Tesla` `Roadstar` or the `Not A Flamethrower` of `The Booring Company`, to make strengthen your defense.
 
 ## Install & Run
 
@@ -37,8 +38,9 @@ Your browser will download all the dependencies from the CDN. Make sure that you
 # Space Invaders [DE]
 Meine Einsendung zu dem `IT-Talents` Programmierwettbewerb.
 
+## Kannst du die Welt retten?
 Verteidige zusammen mit Elon Musk die Welt vor den lebenbedrohenden KI's.
-Kaempfe gegen `AlphaGo`, `OpenAI` und `AlphaZero`. Sammle PowerUps um deine Verteidigung zu staerken!
+Kaempfe gegen `AlphaGo`, `OpenAI` und `AlphaZero`. Sammle PowerUps, wie den `Tesla` `Roadster` oder den `Not A Flamethrower` von `The Booring Company` um deine Verteidigung zu staerken!
 
 ## Install & Run
 

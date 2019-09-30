@@ -368,7 +368,7 @@ var Player = (function () {
 var APowerUp = (function (_super) {
     __extends(APowerUp, _super);
     function APowerUp(x, y, speed, img) {
-        return _super.call(this, x, y, speed, 0, -1, 25, 25, img) || this;
+        return _super.call(this, x, y, speed, 0, -1, 50, 50, img) || this;
     }
     return APowerUp;
 }(AImgEntity));
