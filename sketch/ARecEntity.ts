@@ -14,6 +14,8 @@ abstract class ARecEntity extends AEntity {
 
 	// checks wether two rectangles intersect
 	hits(x: number, y: number, width: number, height: number, dir: number) {
+		if (this.dead)
+			return false;
 		if (dir > 0)
 			return this.y <= y + height && this.y >= y - height && this.x >= x && this.x <= x + width;
 		else
@@ -21,17 +23,28 @@ abstract class ARecEntity extends AEntity {
 	}
 
 	move() {
-		// if (this.x <= SCREEN_OFFSET || this.x <= windowWidth - SCREEN_OFFSET - this.width)
-		// {
-
-			this.x += this.speed * this.xdir;
-			this.y -= this.speed * this.ydir;
+			if (this.x >= SCREEN_OFFSET && this.x <= windowWidth - SCREEN_OFFSET)
+			{
+				this.x += this.speed * this.xdir;
+				this.y -= this.speed * this.ydir;
+			}
+			else
+			{
+				if (this.x < SCREEN_OFFSET)
+					this.x = SCREEN_OFFSET;
+				else if (this.x + this.width > windowWidth - SCREEN_OFFSET)
+					this.x = windowWidth - SCREEN_OFFSET - this.width;
+			}
 
 			if (!isInBounds(this.x, this.y))
 				this.dead = true;
-		//}
 	}
 
 	getWidth = () => this.width;
 	getHeight = () => this.height;
+
+	shiftDown() {
+		this.y += this.height;
+		this.xdir *= -1;
+	}
 }

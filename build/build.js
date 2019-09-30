@@ -29,9 +29,7 @@ var AEntity = (function () {
     AEntity.prototype.modSpeed = function (amount) {
         this.speed += amount;
     };
-    AEntity.prototype.Dead = function () {
-        this.dead = true;
-    };
+    AEntity.prototype.Dead = function () { this.dead = true; };
     return AEntity;
 }());
 var __extends = (this && this.__extends) || (function () {
@@ -58,19 +56,72 @@ var ARecEntity = (function (_super) {
         return _this;
     }
     ARecEntity.prototype.hits = function (x, y, width, height, dir) {
+        if (this.dead)
+            return false;
         if (dir > 0)
             return this.y <= y + height && this.y >= y - height && this.x >= x && this.x <= x + width;
         else
             return this.y >= y && this.y <= y + height && this.x >= x && this.x <= x + width;
     };
     ARecEntity.prototype.move = function () {
-        this.x += this.speed * this.xdir;
-        this.y -= this.speed * this.ydir;
+        if (this.x >= SCREEN_OFFSET && this.x <= windowWidth - SCREEN_OFFSET) {
+            this.x += this.speed * this.xdir;
+            this.y -= this.speed * this.ydir;
+        }
+        else {
+            if (this.x < SCREEN_OFFSET)
+                this.x = SCREEN_OFFSET;
+            else if (this.x + this.width > windowWidth - SCREEN_OFFSET)
+                this.x = windowWidth - SCREEN_OFFSET - this.width;
+        }
         if (!isInBounds(this.x, this.y))
             this.dead = true;
     };
+    ARecEntity.prototype.shiftDown = function () {
+        this.y += this.height;
+        this.xdir *= -1;
+    };
     return ARecEntity;
 }(AEntity));
+var AImgEntity = (function (_super) {
+    __extends(AImgEntity, _super);
+    function AImgEntity(x, y, speed, xdir, ydir, width, height, img) {
+        var _this = _super.call(this, x, y, speed, xdir, ydir, width, height) || this;
+        _this.img = img;
+        return _this;
+    }
+    AImgEntity.prototype.show = function () {
+        if (!this.dead)
+            image(this.img, this.x, this.y, this.width, this.height);
+    };
+    return AImgEntity;
+}(ARecEntity));
+var AEnemy = (function (_super) {
+    __extends(AEnemy, _super);
+    function AEnemy(x, y, speed, xdir, ydir, width, height, img, lives, shootSpeed, reward) {
+        var _this = _super.call(this, x, y, speed, xdir, ydir, width, height, img) || this;
+        _this.getLives = function () { return _this.lives; };
+        _this.decreaseLives = function () {
+            _this.lives--;
+            if (_this.lives <= 0)
+                _this.dead = true;
+        };
+        _this.getShootSpeed = function () { return _this.shootSpeed; };
+        _this.getReward = function () { return _this.reward; };
+        _this.lives = lives;
+        _this.shootSpeed = shootSpeed;
+        _this.reward = reward;
+        return _this;
+    }
+    return AEnemy;
+}(AImgEntity));
+var Boss = (function (_super) {
+    __extends(Boss, _super);
+    function Boss(x, y, type) {
+        return _super.call(this, x, y, 10, 1, 0, BOSS_SIZE, BOSS_SIZE, loadImage('../res/alien' + type + '.png'), 3, 100, 100) || this;
+    }
+    return Boss;
+}(AEnemy));
 var Bullet = (function (_super) {
     __extends(Bullet, _super);
     function Bullet(x, y, color, dir) {
@@ -79,6 +130,8 @@ var Bullet = (function (_super) {
         return _this;
     }
     Bullet.prototype.show = function () {
+        if (this.dead)
+            return;
         fill(this.color);
         noStroke();
         rect(this.x, this.y, this.width, this.height);
@@ -88,19 +141,10 @@ var Bullet = (function (_super) {
 var Enemy = (function (_super) {
     __extends(Enemy, _super);
     function Enemy(x, y, type) {
-        var _this = _super.call(this, x, y, 5, 1, 0, 50, 50) || this;
-        _this.img = loadImage('../res/alien' + type + '.png');
-        return _this;
+        return _super.call(this, x, y, 5, 1, 0, ENEMY_SIZE, ENEMY_SIZE, loadImage('../res/alien' + type + '.png'), 1, 1, 10) || this;
     }
-    Enemy.prototype.shiftDown = function () {
-        this.y += this.height;
-        this.xdir *= -1;
-    };
-    Enemy.prototype.show = function () {
-        image(this.img, this.x, this.y, this.width, this.height);
-    };
     return Enemy;
-}(ARecEntity));
+}(AEnemy));
 var shouldDisplay = true;
 var Game = (function () {
     function Game() {
@@ -121,6 +165,7 @@ var Game = (function () {
         this.gameIsOver = function () { _this.gameOver = true; };
         this.setPlayerXDir = function (dir) { return _this.player.setXDir(dir); };
         this.setPlayerYDir = function (dir) { return _this.player.setYDir(dir); };
+        this.getDesc = function () { return _this.desc; };
         this.playerFire = function () {
             if (_this.bullets.length < _this.player.getMaxBullets()) {
                 _this.bullets.push(_this.player.createBullet());
@@ -141,17 +186,35 @@ var Game = (function () {
             }
         };
         this.spawnNextWave = function () {
-            _this.resetDisplay();
-            var maxEnemiesInRow = Math.floor((windowWidth - SCREEN_OFFSET * 2) / 50);
-            var rows = _this.level > 8 ? 8 : _this.level;
+            _this.resetDisplay(DISPLAY_DURATION);
+            var isBossLevel = _this.level % 5 === 0;
+            var rows = _this.level > 4 ? 4 : _this.level;
             _this.enemies = new Array();
-            for (var i = 0; i < rows; i++) {
-                _this.enemies[i] = new Array();
-                var type = Math.floor(random(1, 4));
-                for (var k = 0; k < maxEnemiesInRow / 2; k++) {
-                    _this.enemies[i][k] = new Enemy(k * 50 + SCREEN_OFFSET, 50 * (i + 1), type);
-                    _this.totalEnemiesAlive++;
+            if (isBossLevel) {
+                var maxEnemiesInRow = Math.floor((windowWidth - SCREEN_OFFSET * 2) / BOSS_SIZE);
+                var amount = _this.level / BOSS_EVERY_X_LEVEL > maxEnemiesInRow
+                    ? maxEnemiesInRow : _this.level / BOSS_EVERY_X_LEVEL;
+                for (var i = 0; i < 1; i++) {
+                    _this.enemies[i] = new Array();
+                    var type = Math.floor(random(1, 4));
+                    for (var k = 0; k < amount; k++) {
+                        _this.enemies[i][k] = new Boss(BOSS_SIZE * k + SCREEN_OFFSET, 50 * (i + 1), type);
+                        _this.totalEnemiesAlive++;
+                    }
                 }
+                _this.desc = "Boss Level";
+            }
+            else {
+                var maxEnemiesInRow = Math.floor((windowWidth - SCREEN_OFFSET * 2) / ENEMY_SIZE);
+                for (var i = 0; i < rows; i++) {
+                    _this.enemies[i] = new Array();
+                    var type = Math.floor(random(1, 4));
+                    for (var k = 0; k < maxEnemiesInRow / 2; k++) {
+                        _this.enemies[i][k] = new Enemy(ENEMY_SIZE * k + SCREEN_OFFSET, 50 * (i + 1), type);
+                        _this.totalEnemiesAlive++;
+                    }
+                }
+                _this.desc = _this.totalEnemiesAlive + ' enemies';
             }
         };
         this.movePowerUps = function () {
@@ -180,11 +243,11 @@ var Game = (function () {
             _this.enemies.forEach(function (enemyArr) {
                 enemyArr.forEach(function (enemy) {
                     enemy.show();
-                    if (random(0, 1000) <= 1) {
+                    if (random(0, 1000) <= enemy.getShootSpeed()) {
                         game.enemyBullets.push(new Bullet(enemy.getX(), enemy.getY(), color(255, 0, 0, 255), -1));
                     }
                     enemy.move();
-                    if (enemy.getX() > windowWidth - enemy.getWidth() - SCREEN_OFFSET || enemy.getX() < SCREEN_OFFSET) {
+                    if (enemy.getX() > windowWidth - enemy.getWidth() - SCREEN_OFFSET || enemy.getX() <= SCREEN_OFFSET) {
                         hitEdge = true;
                     }
                     if (enemy.getY() + enemy.getHeight() >= windowHeight - PLAYER_SPACE_HEIGHT)
@@ -222,18 +285,21 @@ var Game = (function () {
                     for (var j = 0; j < _this.enemies[i].length; j++) {
                         var enemy = _this.enemies[i][j];
                         if (bullet.hits(enemy.getX(), enemy.getY(), enemy.getWidth(), enemy.getHeight(), 1)) {
-                            if (!_this.gameOver)
-                                _this.score += 10;
-                            ellipse(bullet.getX(), bullet.getY(), 6, 6);
-                            _this.enemies[i].splice(j, 1);
-                            _this.totalEnemiesAlive--;
-                            _this.bullets.splice(k, 1);
+                            bullet.Dead();
+                            enemy.decreaseLives();
+                            if (enemy.isDead()) {
+                                if (!_this.gameOver)
+                                    _this.score += enemy.getReward();
+                                _this.enemies[i].splice(j, 1);
+                                _this.totalEnemiesAlive--;
+                                _this.bullets.splice(k, 1);
+                            }
                             break;
                         }
+                        if (!isInBounds(bullet.getX(), bullet.getY()))
+                            _this.bullets.splice(k, 1);
                     }
                 }
-                if (!isInBounds(bullet.getX(), bullet.getY()))
-                    _this.bullets.splice(k, 1);
             }
         };
         this.player = new Player();
@@ -249,22 +315,26 @@ var Game = (function () {
         this.powerUps = new Array();
         this.heartImg = loadImage('../res/heart.png');
         this.timeoutId = -1;
-        this.restartSpawnPowerUp(10000);
+        this.restartSpawnPowerUp(POWER_UP_SPAWN_TIME);
+        this.desc = "";
     }
-    Game.prototype.getDisplayLevelDesc = function () {
-        return this.shouldDisplayLevelDesc;
-    };
-    Game.prototype.resetDisplay = function () {
+    Game.prototype.resetDisplay = function (ms) {
         shouldDisplay = true;
         if (this.timeoutId === -1) {
             this.timeoutId = setTimeout(function () {
                 shouldDisplay = false;
-            }, 3000);
+            }, ms);
         }
         else {
             clearTimeout(this.timeoutId);
             this.timeoutId = -1;
         }
+    };
+    Game.instance = null;
+    Game.getInstance = function () {
+        if (Game.instance === null)
+            return new Game();
+        return Game.instance;
     };
     return Game;
 }());
@@ -287,7 +357,7 @@ var Player = (function () {
         this.move = function () { return _this.ship.move(); };
         this.show = function () { return _this.ship.show(); };
         this.createBullet = function () {
-            return new Bullet(_this.getX(), _this.getY(), color(255), 1);
+            return new Bullet(_this.getX() + _this.ship.getWidth() / 2, _this.getY(), color(255), 1);
         };
         this.ship = new Ship();
         this.maxBullets = 5;
@@ -297,35 +367,11 @@ var Player = (function () {
 }());
 var APowerUp = (function (_super) {
     __extends(APowerUp, _super);
-    function APowerUp(x, y, speed, image) {
-        var _this = _super.call(this, x, y, speed, 0, -1, 25, 25) || this;
-        _this.image = image;
-        return _this;
+    function APowerUp(x, y, speed, img) {
+        return _super.call(this, x, y, speed, 0, -1, 25, 25, img) || this;
     }
-    APowerUp.prototype.show = function () {
-        image(this.image, this.x, this.y, this.width, this.height);
-    };
     return APowerUp;
-}(ARecEntity));
-var PowerUpFactory = (function () {
-    function PowerUpFactory() {
-    }
-    PowerUpFactory.prototype.createRandomPowerUp = function (x, y) {
-        var rand = Math.floor(random(0, 3));
-        switch (rand) {
-            case 0:
-                return new SpeedPowerUp(x, y, 1);
-            case 1:
-                return new LifeUp(x, y, 1);
-            case 2:
-                return new MoreAmmo(x, y, 1);
-            default:
-                break;
-        }
-        return new SpeedPowerUp(x, y, 1);
-    };
-    return PowerUpFactory;
-}());
+}(AImgEntity));
 var SpeedPowerUp = (function (_super) {
     __extends(SpeedPowerUp, _super);
     function SpeedPowerUp(x, y, speed) {
@@ -358,18 +404,32 @@ var MoreAmmo = (function (_super) {
     };
     return MoreAmmo;
 }(APowerUp));
+var PowerUpFactory = (function () {
+    function PowerUpFactory() {
+    }
+    PowerUpFactory.prototype.createRandomPowerUp = function (x, y) {
+        var rand = Math.floor(random(0, 3));
+        var speed = Math.floor(random(1, 4));
+        switch (rand) {
+            case 0:
+                return new SpeedPowerUp(x, y, speed);
+            case 1:
+                return new LifeUp(x, y, speed);
+            case 2:
+                return new MoreAmmo(x, y, speed);
+            default:
+                break;
+        }
+    };
+    return PowerUpFactory;
+}());
 var Ship = (function (_super) {
     __extends(Ship, _super);
     function Ship() {
-        var _this = _super.call(this, windowWidth / 2, windowHeight - 100 - 20, 5, 0, 0, 80, 100) || this;
-        _this.img = loadImage('../res/ship.png');
-        return _this;
+        return _super.call(this, windowWidth / 2, windowHeight - 100 - 20, 5, 0, 0, 80, 100, loadImage('../res/ship.png')) || this;
     }
-    Ship.prototype.show = function () {
-        image(this.img, this.x, this.y, this.width, this.height);
-    };
     return Ship;
-}(ARecEntity));
+}(AImgEntity));
 var Star = (function (_super) {
     __extends(Star, _super);
     function Star(x, y, radius1, radius2, npoints) {
@@ -407,6 +467,11 @@ var PLAYER_SPACE_HEIGHT = 250;
 var ENEMY_SHOOT_CHANCE = 100;
 var SPACE_BAR = 32;
 var SCREEN_OFFSET = 20;
+var BOSS_SIZE = 150;
+var ENEMY_SIZE = 50;
+var DISPLAY_DURATION = 3000;
+var POWER_UP_SPAWN_TIME = 5000;
+var BOSS_EVERY_X_LEVEL = 5;
 var getCookieByName = function (name) {
     var cookiestring = RegExp("" + name + "[^;]+").exec(document.cookie);
     return decodeURIComponent(!!cookiestring ? cookiestring.toString().replace(/^[^=]+./, "") : "");
@@ -447,20 +512,23 @@ var drawUi = function () {
     }
 };
 var displayLevelAndDesc = function () {
-    var level = game.getLevel();
     if (!shouldDisplay)
         return;
+    var level = game.getLevel();
+    var desc = game.getDesc();
     textAlign(CENTER, CENTER);
     textSize(64);
     fill(255);
     text('LEVEL ' + level, windowWidth / 2, windowHeight / 2);
+    textSize(32);
+    text(desc, windowWidth / 2, windowHeight / 2 + 50);
 };
 var isInBounds = function (x, y) {
     return x >= 0 && x <= windowWidth && y >= 0 && y <= windowHeight;
 };
 var game;
 function setup() {
-    game = new Game();
+    game = Game.getInstance();
     game.spawnNextWave();
     createCanvas(windowWidth, windowHeight);
 }

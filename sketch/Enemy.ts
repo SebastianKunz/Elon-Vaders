@@ -1,23 +1,12 @@
-class Enemy extends ARecEntity {
-	private img: p5.Image;
+/*
+	The normal enemy
+	Only has 1 life
+*/
+class Enemy extends AEnemy {
 
 	constructor(x: number, y: number, type: number) {
-		super(x, y, 5, 1, 0, 50, 50);
-		this.img = loadImage('../res/alien' + type + '.png');
+		super(x, y, 5, 1, 0, ENEMY_SIZE, ENEMY_SIZE,
+			loadImage('../res/alien' + type + '.png'), 1, 1, 10);
 	}
 
-	shiftDown() {
-		this.y += this.height;
-		this.xdir *= -1;
-	}
-
-	show() {
-		image(this.img, this.x, this.y, this.width, this.height);
-		// if (DEBUG)
-		// {
-		// 	noFill();
-		// 	stroke(2);
-		// 	rect(this.x, this.y, this.width, this.height)
-		// }
-	}
 }

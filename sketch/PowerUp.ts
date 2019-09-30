@@ -1,40 +1,10 @@
-abstract class APowerUp extends ARecEntity {
-	protected image: p5.Image;
+abstract class APowerUp extends AImgEntity {
 
-	constructor (x: number, y: number, speed: number, image: p5.Image) {
-		super(x, y, speed, 0, -1, 25, 25);
-		this.image = image;
-	}
-
-	show() {
-		image(this.image, this.x, this.y, this.width, this.height);
+	constructor (x: number, y: number, speed: number, img: p5.Image) {
+		super(x, y, speed, 0, -1, 25, 25, img);
 	}
 
 	abstract addEffect(player: Player) : void;
-}
-
-class PowerUpFactory {
-	constructor() {
-
-	}
-
-	createRandomPowerUp(x: number, y: number): APowerUp {
-		const rand = Math.floor(random(0, 3))
-		switch (rand) {
-			case 0:
-				return new SpeedPowerUp(x, y, 1);
-
-			case 1:
-				return new LifeUp(x, y, 1);
-
-			case 2:
-				return new MoreAmmo(x, y, 1);
-
-			default:
-				break;
-		}
-		return new SpeedPowerUp(x, y, 1);
-	}
 }
 
 class SpeedPowerUp extends APowerUp {

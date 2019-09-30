@@ -46,9 +46,8 @@ abstract class AEntity {
 
 	isDead = () => this.dead;
 
-	Dead() {
-		this.dead = true;
-	}
+	// Kills the Entity
+	Dead() { this.dead = true; }
 
 	getX = () => this.x;
 	getY = () => this.y;

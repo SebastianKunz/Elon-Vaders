@@ -26,6 +26,6 @@ class Player {
 	}
 
 	createBullet = () => {
-		return new Bullet(this.getX(), this.getY(), color(255), 1);
+		return new Bullet(this.getX() + this.ship.getWidth() / 2, this.getY(), color(255), 1);
 	}
 }

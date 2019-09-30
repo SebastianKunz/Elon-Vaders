@@ -1,8 +1,7 @@
 let game: Game;
 
 function setup() {
-
-	game = new Game();
+	game = Game.getInstance();
 	game.spawnNextWave();
   createCanvas(windowWidth, windowHeight)
 }

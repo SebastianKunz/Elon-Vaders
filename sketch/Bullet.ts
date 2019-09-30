@@ -7,6 +7,9 @@ class Bullet extends ARecEntity {
 	}
 
 	show() {
+		if (this.dead)
+			return;
+
 		fill(this.color);
 		noStroke();
 		rect(this.x, this.y, this.width, this.height);

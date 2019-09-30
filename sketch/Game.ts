@@ -1,12 +1,14 @@
-/*
-	All Global variables that are needed by the game
-*/
 let shouldDisplay = true;
+
+/*
+	Singletone Game class
+	Controls game logic and game data
+*/
 class Game {
 	private player: Player;
 	private powerUpFactory: PowerUpFactory;
 	private powerUps: Array<APowerUp>;
-	private enemies: Array<Array<Enemy>>;
+	private enemies: Array<Array<AEnemy>>;
 	private bullets: Array<Bullet>;
 	private enemyBullets: Array<Bullet>;
 	private stars: Array<Star>;
@@ -14,6 +16,10 @@ class Game {
 	private level = 1;
 	private gameOver = false;
 	private totalEnemiesAlive = 0;
+	private static instance: Game = null;
+
+	// desc that is displayed at the beginning of a wave
+	private desc: string;
 
 	private timeoutId = -1;
 	private powerUpId = -1;
@@ -22,7 +28,13 @@ class Game {
 
 	DEBUG = false;
 
-	constructor() {
+	static getInstance = () => {
+		if (Game.instance === null)
+			return new Game();
+		return Game.instance;
+	}
+
+	private constructor() {
 		this.player = new Player();
 		this.bullets = new Array<Bullet>();
 		this.enemyBullets = new Array<Bullet>();
@@ -39,7 +51,8 @@ class Game {
 		this.heartImg = loadImage('../res/heart.png');
 
 		this.timeoutId = -1;
-		this.restartSpawnPowerUp(10000);
+		this.restartSpawnPowerUp(POWER_UP_SPAWN_TIME);
+		this.desc = ""
 	}
 
 	getScore = () => this.score;
@@ -53,9 +66,8 @@ class Game {
 
 	setPlayerXDir = (dir: number) => this.player.setXDir(dir);
 	setPlayerYDir = (dir: number) => this.player.setYDir(dir);
-	getDisplayLevelDesc () {
-		return this.shouldDisplayLevelDesc;
-	}
+
+	getDesc = () => this.desc;
 
 	playerFire = () => {
 		if (this.bullets.length < this.player.getMaxBullets()) {
@@ -63,14 +75,19 @@ class Game {
 		}
 	}
 
-	private resetDisplay() {
+	/*
+		At the beginning of a new wave, there is a short message with the current level
+		and a short description (how many enemies or boss level).
+		This function sets a timeout with | ms |, to hide the display.
+	*/
+	private resetDisplay(ms: number) {
 		shouldDisplay = true;
 
 		if (this.timeoutId === -1)
 		{
-			this.timeoutId = setTimeout( function () {
+			this.timeoutId = setTimeout( () => {
 				shouldDisplay = false;
-			}, 3000);
+			}, ms);
 
 		}
 		else
@@ -96,19 +113,44 @@ class Game {
 		}
 	}
 
-
+	/*
+		Every new Wave enemies are spawned based on the level (the higher the more difficult).
+		Every 10 Levels there is a Boss wave. Bosses shoot faster and have more lives,
+		but theire hitbox is bigger.
+	*/
 	spawnNextWave = () => {
-		this.resetDisplay();
-		const maxEnemiesInRow = Math.floor((windowWidth - SCREEN_OFFSET * 2) / 50);
-		const rows = this.level > 8 ? 8 : this.level;
+		this.resetDisplay(DISPLAY_DURATION);
+		const isBossLevel = this.level % 5 === 0;
+		// allow max 4 rows of enemies
+		const rows = this.level > 4 ? 4 : this.level;
 		this.enemies = new Array<Array<Enemy>>();
-		for (let i = 0; i < rows; i++) {
-			this.enemies[i] = new Array<Enemy>();
-			const type = Math.floor(random(1, 4));
-			for (let k = 0; k < maxEnemiesInRow / 2; k++) {
-				this.enemies[i][k] = new Enemy(k * 50 + SCREEN_OFFSET, 50 * (i + 1), type);
-				this.totalEnemiesAlive++;
+		if (isBossLevel)
+		{
+			const maxEnemiesInRow = Math.floor((windowWidth - SCREEN_OFFSET * 2) / BOSS_SIZE);
+			const amount = this.level / BOSS_EVERY_X_LEVEL > maxEnemiesInRow
+				? maxEnemiesInRow : this.level / BOSS_EVERY_X_LEVEL;
+			for (let i = 0; i < 1; i++) {
+				this.enemies[i] = new Array<Boss>();
+				const type = Math.floor(random(1, 4));
+				for (let k = 0; k < amount; k++) {
+					this.enemies[i][k] = new Boss(BOSS_SIZE * k + SCREEN_OFFSET, 50 * (i + 1), type);
+					this.totalEnemiesAlive++;
+				}
 			}
+			this.desc = "Boss Level"
+		}
+		else
+		{
+			const maxEnemiesInRow = Math.floor((windowWidth - SCREEN_OFFSET * 2) / ENEMY_SIZE);
+			for (let i = 0; i < rows; i++) {
+				this.enemies[i] = new Array<Enemy>();
+				const type = Math.floor(random(1, 4));
+				for (let k = 0; k < maxEnemiesInRow / 2; k++) {
+					this.enemies[i][k] = new Enemy(ENEMY_SIZE * k + SCREEN_OFFSET, 50 * (i + 1), type);
+					this.totalEnemiesAlive++;
+				}
+			}
+			this.desc = this.totalEnemiesAlive + ' enemies'
 		}
 	}
 
@@ -146,12 +188,12 @@ class Game {
 				enemy.show();
 
 				// let enemy shoot randomly
-				if (random(0, 1000) <= 1) {
+				if (random(0, 1000) <= enemy.getShootSpeed()) {
 					game.enemyBullets.push(new Bullet(enemy.getX(), enemy.getY(), color(255, 0, 0, 255), -1));
 				}
 
 				enemy.move();
-				if (enemy.getX() > windowWidth - enemy.getWidth() - SCREEN_OFFSET || enemy.getX() < SCREEN_OFFSET) {
+				if (enemy.getX() > windowWidth - enemy.getWidth() - SCREEN_OFFSET || enemy.getX() <= SCREEN_OFFSET) {
 					hitEdge = true;
 				}
 
@@ -198,23 +240,27 @@ class Game {
 			for (let i = 0; i < this.enemies.length; i++) {
 				for (let j = 0; j < this.enemies[i].length; j++) {
 					const enemy = this.enemies[i][j];
-					if (bullet.hits(enemy.getX(), enemy.getY(), enemy.getWidth(), enemy.getHeight(), 1))
-					{
+					if (bullet.hits(enemy.getX(), enemy.getY(), enemy.getWidth(), enemy.getHeight(), 1)) {
 						// remove bullet and enemy from array
-						if (!this.gameOver)
-							this.score += 10;
-						ellipse(bullet.getX(), bullet.getY(), 6, 6);
-						this.enemies[i].splice(j, 1);
-						this.totalEnemiesAlive--;
-						this.bullets.splice(k, 1);
+						bullet.Dead();
 
+						enemy.decreaseLives();
+
+						if (enemy.isDead())
+						{
+							if (!this.gameOver)
+								this.score += enemy.getReward();
+							this.enemies[i].splice(j, 1);
+							this.totalEnemiesAlive--;
+							this.bullets.splice(k, 1);
+						}
 						break ;
 					}
+
+				if (!isInBounds(bullet.getX(), bullet.getY()))
+					this.bullets.splice(k, 1);
 				}
 			}
-
-			if (!isInBounds(bullet.getX(), bullet.getY()))
-				this.bullets.splice(k, 1);
 		}
 	}
 }

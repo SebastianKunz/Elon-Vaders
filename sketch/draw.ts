@@ -33,13 +33,16 @@ const drawUi = () => {
 }
 
 const displayLevelAndDesc = () => {
-	const level = game.getLevel();
-
 	if (!shouldDisplay)
 		return;
+
+	const level = game.getLevel();
+	const desc = game.getDesc();
 
 	textAlign(CENTER, CENTER);
 	textSize(64);
 	fill(255);
 	text('LEVEL ' + level, windowWidth / 2, windowHeight / 2);
+	textSize(32);
+	text(desc, windowWidth / 2, windowHeight / 2 + 50);
 }
