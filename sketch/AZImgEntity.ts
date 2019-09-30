@@ -1,6 +1,11 @@
 // The file is named AZImgEntity on purpose, becuase the compiler needs to compile ARecEntity first
 // This is a hacky way, I should rather specify the compilation order in tsconfig.json
 
+/*
+	Implementation of ARecEntity.
+	This class needs an image.
+	Show function renders the image.
+*/
 class AImgEntity extends ARecEntity {
 	protected img: p5.Image;
 

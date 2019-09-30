@@ -3,7 +3,7 @@
 	Shoots faster
 	Gives more score points
 */
-class Boss extends AEnemy {
+class Boss extends Enemy {
 
 	constructor (x: number, y: number, type: number) {
 		super(x, y, 10, 1, 0, BOSS_SIZE, BOSS_SIZE,

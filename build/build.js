@@ -96,9 +96,9 @@ var AImgEntity = (function (_super) {
     };
     return AImgEntity;
 }(ARecEntity));
-var AEnemy = (function (_super) {
-    __extends(AEnemy, _super);
-    function AEnemy(x, y, speed, xdir, ydir, width, height, img, lives, shootSpeed, reward) {
+var Enemy = (function (_super) {
+    __extends(Enemy, _super);
+    function Enemy(x, y, speed, xdir, ydir, width, height, img, lives, shootSpeed, reward) {
         var _this = _super.call(this, x, y, speed, xdir, ydir, width, height, img) || this;
         _this.getLives = function () { return _this.lives; };
         _this.decreaseLives = function () {
@@ -113,7 +113,7 @@ var AEnemy = (function (_super) {
         _this.reward = reward;
         return _this;
     }
-    return AEnemy;
+    return Enemy;
 }(AImgEntity));
 var Boss = (function (_super) {
     __extends(Boss, _super);
@@ -121,7 +121,7 @@ var Boss = (function (_super) {
         return _super.call(this, x, y, 10, 1, 0, BOSS_SIZE, BOSS_SIZE, loadImage('../res/a' + type + '.png'), 3, 100, 100) || this;
     }
     return Boss;
-}(AEnemy));
+}(Enemy));
 var Bullet = (function (_super) {
     __extends(Bullet, _super);
     function Bullet(x, y, color, dir) {
@@ -138,13 +138,13 @@ var Bullet = (function (_super) {
     };
     return Bullet;
 }(ARecEntity));
-var Enemy = (function (_super) {
-    __extends(Enemy, _super);
-    function Enemy(x, y, type) {
+var AI = (function (_super) {
+    __extends(AI, _super);
+    function AI(x, y, type) {
         return _super.call(this, x, y, 5, 1, 0, ENEMY_SIZE, ENEMY_SIZE, loadImage('../res/a' + type + '.png'), 1, 1, 10) || this;
     }
-    return Enemy;
-}(AEnemy));
+    return AI;
+}(Enemy));
 var shouldDisplay = true;
 var Game = (function () {
     function Game() {
@@ -210,7 +210,7 @@ var Game = (function () {
                     _this.enemies[i] = new Array();
                     var type = Math.floor(random(1, 4));
                     for (var k = 0; k < maxEnemiesInRow / 2; k++) {
-                        _this.enemies[i][k] = new Enemy(ENEMY_SIZE * k + SCREEN_OFFSET, 50 * (i + 1), type);
+                        _this.enemies[i][k] = new AI(ENEMY_SIZE * k + SCREEN_OFFSET, 50 * (i + 1), type);
                         _this.totalEnemiesAlive++;
                     }
                 }
@@ -464,7 +464,6 @@ var Star = (function (_super) {
     return Star;
 }(AEntity));
 var PLAYER_SPACE_HEIGHT = 250;
-var ENEMY_SHOOT_CHANCE = 100;
 var SPACE_BAR = 32;
 var SCREEN_OFFSET = 20;
 var BOSS_SIZE = 150;

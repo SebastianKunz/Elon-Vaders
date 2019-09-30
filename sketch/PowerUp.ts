@@ -1,3 +1,7 @@
+/*
+	Abstract class for PowerUps.
+	Child classes have to implement addEffect(player: Player)
+*/
 abstract class APowerUp extends AImgEntity {
 
 	constructor (x: number, y: number, speed: number, img: p5.Image) {
@@ -7,6 +11,9 @@ abstract class APowerUp extends AImgEntity {
 	abstract addEffect(player: Player) : void;
 }
 
+/*
+	SpeedPowerUp: increases player speed
+*/
 class SpeedPowerUp extends APowerUp {
 	amount: number;
 
@@ -20,6 +27,9 @@ class SpeedPowerUp extends APowerUp {
 	}
 }
 
+/*
+	LifeUp: increases player lives
+*/
 class LifeUp extends APowerUp {
 	constructor (x: number, y: number, speed: number) {
 		super(x, y, speed, loadImage('../res/PowerUps/life.png'));
@@ -29,7 +39,9 @@ class LifeUp extends APowerUp {
 		player.increaseLives();
 	}
 }
-
+/*
+	MoreAmmo: increases players maxBullets
+*/
 class MoreAmmo extends APowerUp {
 	constructor (x: number, y: number, speed: number) {
 		super(x, y, speed, loadImage('../res/PowerUps/ammo.png'));

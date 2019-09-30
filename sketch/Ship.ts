@@ -1,3 +1,6 @@
+/*
+	The Ship is controlled by the player
+*/
 class Ship extends AImgEntity {
 
 	constructor() {

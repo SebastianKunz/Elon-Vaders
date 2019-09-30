@@ -1,6 +1,9 @@
 // See AZImgEntity for filename explanation
 
-class AEnemy extends AImgEntity {
+/*
+	Base class for Enemies
+*/
+class Enemy extends AImgEntity {
 	private lives: number;
 	private shootSpeed: number;
 	private reward: number;

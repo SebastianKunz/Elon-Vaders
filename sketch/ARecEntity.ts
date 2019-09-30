@@ -1,5 +1,7 @@
-// Abstract class for Entities with rectangular hitbox.
-// Classes with rectangular hitbox should inherite from this class.
+/*
+	Abstract class for Entities with rectangular hitbox.
+	Classes with rectangular hitbox should inherite from this class.
+*/
 abstract class ARecEntity extends AEntity {
 	protected width: number;
 	protected height: number;
@@ -23,21 +25,21 @@ abstract class ARecEntity extends AEntity {
 	}
 
 	move() {
-			if (this.x >= SCREEN_OFFSET && this.x <= windowWidth - SCREEN_OFFSET)
-			{
-				this.x += this.speed * this.xdir;
-				this.y -= this.speed * this.ydir;
-			}
-			else
-			{
-				if (this.x < SCREEN_OFFSET)
-					this.x = SCREEN_OFFSET;
-				else if (this.x + this.width > windowWidth - SCREEN_OFFSET)
-					this.x = windowWidth - SCREEN_OFFSET - this.width;
-			}
+		if (this.x >= SCREEN_OFFSET && this.x <= windowWidth - SCREEN_OFFSET)
+		{
+			this.x += this.speed * this.xdir;
+			this.y -= this.speed * this.ydir;
+		}
+		else
+		{
+			if (this.x < SCREEN_OFFSET)
+				this.x = SCREEN_OFFSET;
+			else if (this.x + this.width > windowWidth - SCREEN_OFFSET)
+				this.x = windowWidth - SCREEN_OFFSET - this.width;
+		}
 
-			if (!isInBounds(this.x, this.y))
-				this.dead = true;
+		if (!isInBounds(this.x, this.y))
+			this.dead = true;
 	}
 
 	getWidth = () => this.width;

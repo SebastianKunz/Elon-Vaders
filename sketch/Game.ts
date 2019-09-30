@@ -8,7 +8,7 @@ class Game {
 	private player: Player;
 	private powerUpFactory: PowerUpFactory;
 	private powerUps: Array<APowerUp>;
-	private enemies: Array<Array<AEnemy>>;
+	private enemies: Array<Array<Enemy>>;
 	private bullets: Array<Bullet>;
 	private enemyBullets: Array<Bullet>;
 	private stars: Array<Star>;
@@ -115,7 +115,7 @@ class Game {
 
 	/*
 		Every new Wave enemies are spawned based on the level (the higher the more difficult).
-		Every 10 Levels there is a Boss wave. Bosses shoot faster and have more lives,
+		Every BOSS_EVERY_X_LEVEL Levels there is a Boss wave. Bosses shoot faster and have more lives,
 		but theire hitbox is bigger.
 	*/
 	spawnNextWave = () => {
@@ -146,7 +146,7 @@ class Game {
 				this.enemies[i] = new Array<Enemy>();
 				const type = Math.floor(random(1, 4));
 				for (let k = 0; k < maxEnemiesInRow / 2; k++) {
-					this.enemies[i][k] = new Enemy(ENEMY_SIZE * k + SCREEN_OFFSET, 50 * (i + 1), type);
+					this.enemies[i][k] = new AI(ENEMY_SIZE * k + SCREEN_OFFSET, 50 * (i + 1), type);
 					this.totalEnemiesAlive++;
 				}
 			}

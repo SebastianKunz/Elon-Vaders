@@ -1,3 +1,7 @@
+/*
+	Player class holds all data of the Player, which is controlled by User.
+	Also owns a Ship instance, and navigates it.
+*/
 class Player {
 	private lives: number;
 	private maxBullets: number;

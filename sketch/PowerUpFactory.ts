@@ -1,3 +1,7 @@
+/*
+	Simple Factory to create PowerUps
+	A new PowerUp is created by calling createRandomPowerUp.
+*/
 class PowerUpFactory {
 	constructor() {
 

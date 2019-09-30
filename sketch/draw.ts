@@ -18,6 +18,10 @@ const drawGameOverScreen = () => {
 	text('Hit space to restart', windowWidth / 2, windowHeight / 2 + 100)
 }
 
+/*
+	Draws Ui Elements
+	Level, Lives, Score
+*/
 const drawUi = () => {
 	background(100);
 	fill(38)

@@ -2,7 +2,7 @@
 	The normal enemy
 	Only has 1 life
 */
-class Enemy extends AEnemy {
+class AI extends Enemy {
 
 	constructor(x: number, y: number, type: number) {
 		super(x, y, 5, 1, 0, ENEMY_SIZE, ENEMY_SIZE,
