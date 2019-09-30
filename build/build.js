@@ -22,13 +22,27 @@ var Bullet = (function () {
     };
     return Bullet;
 }());
+var PLAYER_SPACE_HEIGHT = 250;
+var ENEMY_SHOOT_CHANCE = 100;
+var SPACE_BAR = 32;
+var SCREEN_OFFSET = 20;
+var getCookieByName = function (name) {
+    var cookiestring = RegExp("" + name + "[^;]+").exec(document.cookie);
+    return decodeURIComponent(!!cookiestring ? cookiestring.toString().replace(/^[^=]+./, "") : "");
+};
+var setCookie = function (cname, cvalue, exdays) {
+    var d = new Date();
+    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+    var expires = "expires=" + d.toUTCString();
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+};
 var Enemy = (function () {
     function Enemy(x, y) {
         this.x = x;
         this.y = y;
         this.r = 20;
         this.dir = 1;
-        this.speed = 3;
+        this.speed = 5;
         this.img = loadImage('../res/alien.png');
         this.width = 50;
         this.height = 50;
@@ -56,9 +70,9 @@ var Ship = (function () {
         this.y = windowHeight - this.height - 20;
     }
     Ship.prototype.move = function () {
-        if (this.x > windowWidth)
+        if (this.x > windowWidth - this.width - SCREEN_OFFSET)
             this.x -= 1;
-        else if (this.x < 0)
+        else if (this.x < SCREEN_OFFSET)
             this.x += 1;
         else
             this.x += this.dir * this.speed;
@@ -112,7 +126,8 @@ var stars;
 var score = 0;
 var maxBullets = 5;
 var lives = 3;
-var level = 0;
+var level = 1;
+var gameOver = false;
 function getRandomNumber(min, max) {
     return Math.random() * (max - min) + min;
 }
@@ -121,9 +136,7 @@ function isInBounds(x, y) {
 }
 function setup() {
     ship = new Ship();
-    enemies = new Array();
-    for (var i = 0; i < 10; i++)
-        enemies[i] = new Enemy(i * 50 + 50, 50);
+    spawnNextWave();
     bullets = new Array();
     enemyBullets = new Array();
     stars = new Array();
@@ -137,15 +150,25 @@ function setup() {
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }
-function draw() {
-    var hitEdge = false;
+var drawUi = function () {
     background(100);
+    fill(38);
+    rect(0, windowHeight - PLAYER_SPACE_HEIGHT, windowWidth, PLAYER_SPACE_HEIGHT);
     textSize(32);
     fill(255);
-    text(lives, 30, windowHeight - 20);
     text('Level: ' + level, windowWidth - 100, windowHeight - 20);
     textAlign(CENTER, CENTER);
     text(score, windowWidth / 2, 20);
+    text(lives, 20, windowHeight - 20);
+};
+var spawnNextWave = function () {
+    enemies = new Array();
+    for (var i = 0; i < 10 * level; i++)
+        enemies[i] = new Enemy(i * 50 + 50, 50);
+};
+function draw() {
+    drawUi();
+    var hitEdge = false;
     stars.forEach(function (star) {
         star.show();
         star.move();
@@ -158,9 +181,11 @@ function draw() {
             enemyBullets.push(new Bullet(enemy.x, enemy.y, color(255, 0, 0, 255), -1));
         }
         enemy.move();
-        if (enemy.x > windowWidth || enemy.x < 0) {
+        if (enemy.x > windowWidth - enemy.width - SCREEN_OFFSET || enemy.x < SCREEN_OFFSET) {
             hitEdge = true;
         }
+        if (enemy.y + enemy.height >= windowHeight - PLAYER_SPACE_HEIGHT)
+            gameOver = true;
     });
     enemies.forEach(function (e) {
         if (hitEdge)
@@ -171,8 +196,9 @@ function draw() {
         bullet.show();
         bullet.move();
         if (bullet.hits(ship.x, ship.y, ship.width, ship.height)) {
-            enemyBullets = [];
             lives--;
+            if (lives <= 0)
+                gameOver = true;
         }
     }
     for (var k = 0; k < bullets.length; k++) {
@@ -182,7 +208,8 @@ function draw() {
         for (var i = 0; i < enemies.length; i++) {
             var enemy = enemies[i];
             if (bullet.hits(enemy.x, enemy.y, enemy.width, enemy.height)) {
-                score += 10;
+                if (!gameOver)
+                    score += 10;
                 ellipse(bullet.x, bullet.y, 6, 6);
                 enemies.splice(i, 1);
                 bullets.splice(k, 1);
@@ -192,19 +219,42 @@ function draw() {
         if (!isInBounds(bullet.x, bullet.y))
             bullets.splice(k, 1);
     }
+    if (enemies.length === 0) {
+        level++;
+        spawnNextWave();
+    }
+    if (gameOver) {
+        var temp = parseInt(getCookieByName('highscore'));
+        var highscore = isNaN(temp) ? 0 : temp;
+        if (score > highscore)
+            setCookie('highscore', score, 1000);
+        textSize(64);
+        fill(255, 0, 0, 255);
+        text('GAME OVER', windowWidth / 2, windowHeight / 2);
+        fill(255);
+        textSize(32);
+        text('Score: ' + score + ' Highscore: ' + highscore, windowWidth / 2, windowHeight / 2 + 50);
+        textSize(25);
+        text('Hit space to restart', windowWidth / 2, windowHeight / 2 + 100);
+    }
 }
 function keyReleased() {
-    if (keyCode !== 32)
+    if (keyCode !== SPACE_BAR)
         ship.setDir(0);
 }
 function keyPressed() {
+    if (gameOver) {
+        if (keyCode === SPACE_BAR)
+            window.location.reload();
+        return;
+    }
     if (keyCode === RIGHT_ARROW) {
         ship.setDir(1);
     }
     else if (keyCode === LEFT_ARROW) {
         ship.setDir(-1);
     }
-    if (keyCode === 32) {
+    if (keyCode === SPACE_BAR) {
         if (bullets.length < maxBullets)
             bullets.push(new Bullet(ship.x + ship.width / 2, ship.y, color(255), 1));
     }

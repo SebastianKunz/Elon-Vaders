@@ -13,7 +13,7 @@ class Enemy {
 		this.y = y;
 		this.r = 20;
 		this.dir = 1;
-		this.speed = 3;
+		this.speed = 5;
 		this.img = loadImage('../res/alien.png');
 		this.width = 50;
 		this.height = 50;

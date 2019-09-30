@@ -6,7 +6,8 @@ let stars: Array<Star>;
 let score = 0;
 let maxBullets = 5;
 let lives = 3;
-let level = 0;
+let level = 1;
+let gameOver = false;
 
 function getRandomNumber(min: number, max: number) {
     return Math.random() * (max - min) + min;
@@ -19,9 +20,7 @@ function isInBounds(x: number, y: number) {
 function setup() {
 		ship = new Ship();
 
-		enemies = new Array<Enemy>();
-		for (let i = 0; i < 10; i++)
-			enemies[i] = new Enemy(i * 50 + 50, 50);
+		spawnNextWave();
 
 		bullets = new Array<Bullet>();
 		enemyBullets = new Array<Bullet>();
@@ -41,16 +40,28 @@ function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }
 
-
-function draw() {
-	let hitEdge = false;
+const drawUi = () => {
 	background(100);
+	fill(38)
+	rect(0, windowHeight - PLAYER_SPACE_HEIGHT, windowWidth, PLAYER_SPACE_HEIGHT);
 	textSize(32);
 	fill(255);
-	text(lives, 30, windowHeight - 20);
 	text('Level: ' + level, windowWidth - 100, windowHeight - 20)
 	textAlign(CENTER, CENTER);
-	text(score, windowWidth / 2, 20)
+	text(score, windowWidth / 2, 20);
+	text(lives, 20, windowHeight - 20);
+}
+
+const spawnNextWave = () => {
+	enemies = new Array<Enemy>();
+	for (let i = 0; i < 10 * level; i++)
+		enemies[i] = new Enemy(i * 50 + 50, 50);
+}
+
+function draw() {
+	drawUi();
+
+	let hitEdge = false;
 
 	stars.forEach( star => {
 			star.show();
@@ -70,9 +81,12 @@ function draw() {
 		}
 
 		enemy.move();
-		if (enemy.x > windowWidth || enemy.x < 0) {
+		if (enemy.x > windowWidth - enemy.width - SCREEN_OFFSET || enemy.x < SCREEN_OFFSET) {
 			hitEdge = true;
 		}
+
+		if (enemy.y + enemy.height >= windowHeight - PLAYER_SPACE_HEIGHT)
+			gameOver = true;
 	});
 
 	enemies.forEach( e => {
@@ -88,9 +102,9 @@ function draw() {
 
 		if (bullet.hits(ship.x, ship.y, ship.width, ship.height))
 		{
-			//enemyBullets.slice(i, 1);
-			enemyBullets = [];
 			lives--;
+			if (lives <= 0)
+				gameOver = true;
 		}
 	}
 
@@ -104,7 +118,8 @@ function draw() {
 			if (bullet.hits(enemy.x, enemy.y, enemy.width, enemy.height))
 			{
 				// remove bullet and enemy from array
-				score += 10;
+				if (!gameOver)
+					score += 10;
 				ellipse(bullet.x, bullet.y, 6, 6);
 				enemies.splice(i, 1);
 				bullets.splice(k, 1);
@@ -116,14 +131,45 @@ function draw() {
 		if (!isInBounds(bullet.x, bullet.y))
 			bullets.splice(k, 1);
 	}
+
+	if (enemies.length === 0)
+	{
+		level++;
+		spawnNextWave();
+	}
+
+	// draw GameOver screen
+	if (gameOver)
+	{
+		let temp = parseInt(getCookieByName('highscore'));
+		const highscore = isNaN(temp) ? 0 : temp;
+
+		if (score > highscore)
+			setCookie('highscore', score, 1000);
+		textSize(64);
+		fill(255, 0, 0, 255);
+		text('GAME OVER', windowWidth / 2, windowHeight / 2);
+		fill(255);
+		textSize(32);
+		text('Score: ' + score + ' Highscore: ' + highscore, windowWidth / 2, windowHeight / 2 + 50);
+		textSize(25);
+		text('Hit space to restart', windowWidth / 2, windowHeight / 2 + 100)
+	}
 }
 
 function keyReleased() {
-	if (keyCode !== 32)
+	if (keyCode !== SPACE_BAR)
 		ship.setDir(0)
 }
 
 function keyPressed() {
+	if (gameOver)
+	{
+		if (keyCode === SPACE_BAR)
+			window.location.reload();
+		return ;
+	}
+
 	if (keyCode === RIGHT_ARROW) {
 		ship.setDir(1)
 	}
@@ -132,7 +178,7 @@ function keyPressed() {
 		ship.setDir(-1)
 	}
 
-	if (keyCode === 32)
+	if (keyCode === SPACE_BAR)
 	{
 		if (bullets.length < maxBullets)
 			bullets.push(new Bullet(ship.x + ship.width / 2, ship.y, color(255), 1));

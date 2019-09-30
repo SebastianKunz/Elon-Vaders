@@ -18,9 +18,9 @@ class Ship {
 	}
 
 	move() {
-		if (this.x > windowWidth)
+		if (this.x > windowWidth - this.width - SCREEN_OFFSET)
 			this.x -= 1;
-		else if (this.x < 0)
+		else if (this.x < SCREEN_OFFSET)
 			this.x += 1;
 		else
 			this.x += this.dir * this.speed;
